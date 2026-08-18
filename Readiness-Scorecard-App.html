@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Based Software Sensor Readiness Scorecard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --petrol: #00796B;
+    --petrol-light: #E0F2F1;
+    --deep: #1A237E;
+    --red: #C62828;
+    --red-bg: #FFEBEE;
+    --amber: #F57F17;
+    --amber-bg: #FFF8E1;
+    --green: #2E7D32;
+    --green-bg: #E8F5E9;
+    --gray: #616161;
+    --gray-light: #F5F5F5;
+    --border: #E0E0E0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 15px;
+    color: #212121;
+    background: #FAFAFA;
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  header {
+    text-align: center;
+    padding: 24px 24px 20px;
+    background: var(--petrol);
+    color: white;
+    border-radius: 0 0 8px 8px;
+  }
+
+  header h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+  header p { font-size: 14px; opacity: 0.9; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Landing */
+  .landing-intro {
+    text-align: center;
+    margin: 24px auto 20px;
+    color: var(--gray);
+    font-size: 15px;
+    max-width: 640px;
+  }
+
+  .mode-cards {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .mode-card {
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 28px 24px;
+    width: 360px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    text-align: center;
+  }
+
+  .mode-card:hover {
+    border-color: var(--petrol);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+
+  .mode-card h2 { font-size: 17px; color: var(--petrol); margin-bottom: 8px; }
+  .mode-card p { font-size: 13px; color: var(--gray); }
+  .mode-card .icon { font-size: 36px; margin-bottom: 12px; }
+
+  /* Calibration */
+  .calibration-toggle {
+    text-align: center;
+    margin: 20px 0 0;
+    font-size: 13px;
+    color: var(--petrol);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .calibration-toggle:hover { text-decoration: underline; }
+  .calibration-toggle .caret { font-size: 10px; margin-left: 4px; }
+  .calibration-panel { padding: 16px 0 4px; }
+  .calibration-panel.collapsed { display: none; }
+  .calibration-note {
+    font-size: 12px;
+    color: var(--gray);
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .calibration-inputs {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .calibration-field label {
+    display: block;
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .calibration-field input[type="number"] {
+    width: 80px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  /* History on landing */
+  .history-section {
+    margin-top: 20px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+  }
+
+  .history-section h3 {
+    font-size: 14px;
+    color: var(--deep);
+    margin-bottom: 10px;
+  }
+
+  .history-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .history-entry:last-child { border-bottom: none; }
+
+  .history-entry .he-info { color: #333; }
+  .history-entry .he-score { font-weight: 600; }
+  .history-entry .he-date { color: var(--gray); font-size: 12px; }
+
+  .history-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-small {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: white;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--gray);
+    transition: all 0.15s;
+  }
+
+  .btn-small:hover { border-color: var(--petrol); color: var(--petrol); }
+  .btn-small.danger:hover { border-color: var(--red); color: var(--red); }
+
+  /* Assessment */
+  .assessment-header {
+    background: var(--petrol-light);
+    border-left: 4px solid var(--petrol);
+    padding: 14px 20px;
+    margin: 16px 0;
+    border-radius: 0 4px 4px 0;
+    font-style: italic;
+    color: var(--petrol);
+    font-size: 15px;
+  }
+
+  .scale-legend {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 20px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--gray);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+  }
+
+  .scale-legend strong { color: #212121; }
+
+  .dimension-section {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .dimension-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: var(--gray-light);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .dimension-header h3 { font-size: 15px; color: var(--deep); }
+
+  .dimension-avg {
+    font-size: 13px;
+    color: var(--gray);
+    font-weight: 600;
+  }
+
+  .dimension-body { padding: 0; }
+  .dimension-body.collapsed { display: none; }
+
+  .question-row {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 20px;
+    border-top: 1px solid var(--border);
+    gap: 16px;
+  }
+
+  .question-row:first-child { border-top: none; }
+
+  .question-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.5;
+    padding-top: 2px;
+  }
+
+  .question-source {
+    color: var(--gray);
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
+  .rating-group {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .rating-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray);
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .rating-btn:hover { border-color: var(--petrol); color: var(--petrol); }
+  .rating-btn.selected { background: var(--petrol); color: white; border-color: var(--petrol); }
+
+  .progress-bar-container {
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .progress-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--petrol);
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+
+  .progress-text { font-size: 13px; color: var(--gray); flex-shrink: 0; }
+
+  .btn-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px 0;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-primary { background: var(--petrol); color: white; }
+  .btn-primary:hover { background: #00695C; }
+  .btn-primary:disabled { background: #B0BEC5; cursor: not-allowed; }
+  .btn-secondary { background: white; color: var(--petrol); border: 1px solid var(--petrol); }
+  .btn-secondary:hover { background: var(--petrol-light); }
+  .btn-outline { background: white; color: var(--gray); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--petrol); color: var(--petrol); }
+
+  /* Results */
+  .results-summary {
+    text-align: center;
+    margin: 16px 0 8px;
+  }
+
+  .overall-score { font-size: 48px; font-weight: 700; margin-bottom: 2px; }
+  .overall-label { font-size: 14px; color: var(--gray); margin-bottom: 6px; }
+
+  .readiness-badge {
+    display: inline-block;
+    padding: 5px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber); }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+
+  .chart-container {
+    max-width: 500px;
+    margin: 10px auto 12px;
+    padding: 0 20px;
+  }
+
+  /* Exec Summary */
+  .exec-summary {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px 14px;
+    margin: 14px 0;
+  }
+
+  .exec-summary h3 {
+    font-size: 16px;
+    color: var(--deep);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--petrol);
+  }
+
+  .exec-narrative {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #333;
+    margin-bottom: 14px;
+  }
+
+  .exec-subsection { margin-bottom: 14px; }
+
+  .exec-subsection h4 {
+    font-size: 14px;
+    color: var(--deep);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .exec-subsection h4 .indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .indicator-red { background: var(--red); }
+  .indicator-amber { background: var(--amber); }
+  .indicator-green { background: var(--green); }
+
+  .exec-subsection ul { list-style: none; padding: 0; }
+
+  .exec-subsection li {
+    font-size: 13px;
+    color: #444;
+    line-height: 1.6;
+    padding: 3px 0 3px 20px;
+    position: relative;
+  }
+
+  .exec-subsection li::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 11px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gray);
+  }
+
+  .exec-subsection li.item-red::before { background: var(--red); }
+  .exec-subsection li.item-amber::before { background: var(--amber); }
+  .exec-subsection li.item-green::before { background: var(--green); }
+
+  .dim-insight {
+    background: var(--gray-light);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #333;
+    border-left: 3px solid var(--border);
+  }
+
+  .dim-insight.insight-red { border-left-color: var(--red); }
+  .dim-insight.insight-amber { border-left-color: var(--amber); }
+  .dim-insight.insight-green { border-left-color: var(--green); }
+  .dim-insight strong { color: #212121; }
+
+  /* Guidance */
+  .guidance-section {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px 14px;
+    margin: 14px 0;
+  }
+
+  .guidance-section h3 {
+    font-size: 16px;
+    color: var(--deep);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--petrol);
+  }
+
+
+  .guidance-item {
+    background: var(--red-bg);
+    border-left: 3px solid var(--red);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 16px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .guidance-item.guidance-amber {
+    background: var(--amber-bg);
+    border-left-color: var(--amber);
+  }
+
+  .guidance-item strong {
+    display: block;
+    font-size: 12px;
+    color: var(--gray);
+    margin-bottom: 2px;
+  }
+
+  .dimension-results { margin: 14px 0; }
+
+  .dim-result-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .dim-score-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .circle-red { background: var(--red-bg); color: var(--red); }
+  .circle-amber { background: var(--amber-bg); color: var(--amber); }
+  .circle-green { background: var(--green-bg); color: var(--green); }
+
+  .dim-result-text h4 { font-size: 14px; margin-bottom: 3px; }
+  .dim-result-text p { font-size: 13px; color: var(--gray); }
+
+  .timestamp {
+    font-size: 12px;
+    color: var(--gray);
+    text-align: right;
+    margin-top: 10px;
+    font-style: italic;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+    color: var(--gray);
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+  }
+
+  @media print {
+    header { background: white !important; color: #212121 !important; border-bottom: 2px solid var(--petrol); }
+    header h1 { color: var(--petrol) !important; }
+    .btn-row, .btn, .btn-small, .history-actions { display: none !important; }
+    .screen { display: none !important; }
+    .screen.print-target { display: block !important; }
+    body { background: white; }
+    .dimension-section, .dim-result-card { break-inside: avoid; }
+    .exec-summary, .guidance-section { break-inside: avoid; }
+  }
+
+  @media (max-width: 640px) {
+    .mode-cards { flex-direction: column; align-items: center; }
+    .mode-card { width: 100%; }
+    .question-row { flex-direction: column; gap: 8px; }
+    .rating-group { align-self: flex-end; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AI-Based Software Sensor Readiness Scorecard</h1>
+  <p>An empirically grounded assessment tool for adoption and market readiness</p>
+</header>
+
+<div class="container">
+
+  <!-- LANDING SCREEN -->
+  <div id="landing" class="screen active">
+    <p class="landing-intro">
+      This tool operationalizes two readiness frameworks derived from doctoral research on AI-based software sensors
+      in manufacturing. Select your perspective to begin the assessment.
+    </p>
+    <div class="mode-cards">
+      <div class="mode-card" onclick="startAssessment('adoption')">
+        <div class="icon">&#9881;</div>
+        <h2>Manufacturing Plant Assessment</h2>
+        <p>Adoption Readiness Scorecard: evaluate your organization's preparedness to adopt AI-based software sensors in active production lines.</p>
+      </div>
+      <div class="mode-card" onclick="startAssessment('vendor')">
+        <div class="icon">&#9878;</div>
+        <h2>Technology Vendor Assessment</h2>
+        <p>Market Readiness Scorecard: evaluate whether your AI-based sensor offering is positioned for adoption in manufacturing.</p>
+      </div>
+    </div>
+    <div class="calibration-toggle" onclick="document.getElementById('calibrationPanel').classList.toggle('collapsed')">
+      Customize Thresholds <span class="caret">&#9660;</span>
+    </div>
+    <div id="calibrationPanel" class="calibration-panel collapsed">
+      <p class="calibration-note">Adjust the boundaries between readiness bands. Defaults are derived from survey data (Mantri, 2026).</p>
+      <div class="calibration-inputs">
+        <div class="calibration-field">
+          <label for="threshLower">Not Ready / Conditionally Ready</label>
+          <input type="number" id="threshLower" value="2.5" min="1" max="5" step="0.1">
+        </div>
+        <div class="calibration-field">
+          <label for="threshUpper">Conditionally Ready / Ready to Proceed</label>
+          <input type="number" id="threshUpper" value="3.5" min="1" max="5" step="0.1">
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 10px;">
+        <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 14px;" onclick="document.getElementById('threshLower').value='2.5'; document.getElementById('threshUpper').value='3.5';">Reset to Defaults</button>
+      </div>
+    </div>
+    <div id="historyPanel"></div>
+  </div>
+
+  <!-- ASSESSMENT SCREEN -->
+  <div id="assessment" class="screen">
+    <div class="assessment-header" id="assessmentQuestion"></div>
+
+    <div class="scale-legend">
+      <strong>Rating Scale:</strong>
+      <span>1 = Not addressed</span>
+      <span>2 = Awareness exists, no action</span>
+      <span>3 = Partially in place</span>
+      <span>4 = Largely established</span>
+      <span>5 = Fully established and validated</span>
+    </div>
+
+    <div class="progress-bar-container">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="progress-text" id="progressText">0 / 0</span>
+    </div>
+
+    <div id="dimensionsContainer"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToLanding()">Back</button>
+      <button class="btn btn-primary" id="submitBtn" disabled onclick="showResults()">View Results</button>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="results" class="screen">
+    <div class="results-summary">
+      <div class="overall-score" id="overallScore"></div>
+      <div class="overall-label">Overall Readiness Score</div>
+      <div id="overallBadge"></div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="radarChart"></canvas>
+    </div>
+
+    <div class="exec-summary" id="execSummary"></div>
+
+    <div id="guidanceSection"></div>
+
+    <h3 style="margin-bottom: 10px; color: var(--deep);">Dimension Breakdown</h3>
+    <div class="dimension-results" id="dimensionResults"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="goToLanding()">Start Over</button>
+      <button class="btn btn-primary" onclick="printReport()">Download PDF</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Based on research by Sudarshan Mantri, DBA Thesis, ESGCI Paris, 2026.<br>
+  "Exploring Acceptance and Adoption Preferences for AI-Based Software Sensors as Replacements for Hardware Sensors in Active Production Lines"
+</div>
+
+<script>
+const DATA = {
+  adoption: {
+    title: "Adoption Readiness Scorecard",
+    question: "Are we ready to adopt AI-based software sensors in active production lines?",
+    dimensions: [
+      {
+        name: "Technical Readiness",
+        questions: [
+          { text: "Are the operating parameters of our target application stable and well-defined enough to support AI-based sensing?", source: "Q1, Q3", guidance: "Conduct a process stability analysis for target applications. Document operating parameter ranges and variability before proceeding." },
+          { text: "Do we have confidence that data quality from existing systems is sufficient to train and sustain AI-based sensor models?", source: "Q8", guidance: "Perform a data quality audit across shopfloor systems. Assess completeness, accuracy, and timeliness of available sensor and process data." },
+          { text: "Can AI-based sensors integrate with our existing digital infrastructure and shopfloor connectivity?", source: "Q6", guidance: "Map current IT/OT architecture and identify integration points. Assess network bandwidth, protocol compatibility, and edge computing capacity." },
+          { text: "Have we assessed whether AI-based sensors meet the machine safety requirements applicable to our operations?", source: "Q9", guidance: "Engage safety engineering to review AI-based sensor outputs against applicable safety standards (e.g., IEC 61508, ISO 13849)." },
+          { text: "Have we identified and addressed regulatory requirements that may affect the use of AI-based sensors in our facility?", source: "Q10", guidance: "Commission a regulatory gap analysis covering industry-specific and regional AI regulations applicable to your production environment." }
+        ]
+      },
+      {
+        name: "Workforce Readiness",
+        questions: [
+          { text: "Do our personnel have sufficient familiarity with AI technologies to work alongside AI-based sensors?", source: "Q28", guidance: "Assess current AI literacy levels across relevant roles. Develop baseline training covering AI fundamentals and shopfloor applications." },
+          { text: "Do we have role-differentiated training programs planned for shopfloor teams and business leaders?", source: "Q33, Q30", guidance: "Design separate training tracks: hands-on operational training for shopfloor staff, strategic impact briefings for management." },
+          { text: "Have we acknowledged that AI-based sensing requires specialist expertise beyond our day-to-day manufacturing operations?", source: "Q66", guidance: "Identify skill gaps in data science, ML operations, and AI model maintenance. Plan for hiring, upskilling, or vendor-supported knowledge transfer." },
+          { text: "Have we assessed shopfloor personnel sentiment and trust levels regarding AI-based sensor technology?", source: "Q19, Q32", guidance: "Conduct confidential workforce sentiment surveys. Address concerns about job displacement, trust in AI outputs, and workflow changes proactively." },
+          { text: "Have we identified peer champions or local advocates who can facilitate acceptance among plant personnel?", source: "Q25", guidance: "Identify and empower respected shopfloor personnel as AI champions. Provide them with early access, deeper training, and a feedback channel to leadership." }
+        ]
+      },
+      {
+        name: "Organizational Governance",
+        questions: [
+          { text: "Is there leadership alignment on AI-based sensor adoption as a strategic objective?", source: "Q34", guidance: "Secure executive sponsorship with a clear mandate. Document AI sensing as a strategic priority in relevant planning documents." },
+          { text: "Have cross-functional teams (e.g., IT, operations, engineering, procurement) been assembled for this initiative?", source: "Q52", guidance: "Form a cross-functional steering committee with representatives from IT, operations, engineering, procurement, and safety." },
+          { text: "Is a bounded pilot testing plan with clear success criteria defined before full rollout?", source: "Q47", guidance: "Define a pilot scope: specific machine, line, or process. Establish measurable success criteria (accuracy, uptime, cost) and a decision gate for scale-up." },
+          { text: "Is a phased implementation approach planned rather than a single full-scale deployment?", source: "Q48", guidance: "Structure rollout in phases: single machine, single line, multi-line, multi-site. Define go/no-go criteria between phases." },
+          { text: "Have ROI estimation and financial impact assessment been completed for this project?", source: "Q40", guidance: "Build a business case comparing total cost of ownership: hardware sensor maintenance and replacement vs. AI-based sensor deployment and operation." },
+          { text: "Are post-adoption monitoring mechanisms in place to evaluate success after deployment?", source: "Q46", guidance: "Define KPIs for post-deployment tracking: prediction accuracy drift, maintenance cost reduction, downtime impact, and user satisfaction scores." },
+          { text: "Are organizational policies on AI adoption clearly documented and communicated?", source: "Q39", guidance: "Draft and communicate an AI governance policy covering data usage, model validation, accountability, and escalation procedures." }
+        ]
+      },
+      {
+        name: "Commercial Readiness",
+        questions: [
+          { text: "Has a budget been allocated with clear visibility into expected costs and potential hidden costs?", source: "Q42, Q43", guidance: "Itemize all cost components: licensing, integration, training, data preparation, ongoing model maintenance, and infrastructure upgrades." },
+          { text: "Has the organization evaluated and identified its preferred engagement model (SaaS, in-house, hybrid)?", source: "Q72, Q65", guidance: "Evaluate delivery models against your IT strategy, data sovereignty requirements, and internal ML capability. Document the rationale for the selected model." },
+          { text: "Have expectations for favourable and transparent pricing terms been defined for vendor engagement?", source: "Q71", guidance: "Define procurement criteria: pricing transparency, volume discounts, contract flexibility, and exit terms. Use these in vendor evaluation scorecards." },
+          { text: "Has the organization established its position on data sovereignty and ownership of sensor-generated data?", source: "Q69", guidance: "Clarify data ownership, storage location, and portability requirements. Ensure contractual terms reflect your position on data sovereignty." }
+        ]
+      }
+    ]
+  },
+  vendor: {
+    title: "Market Readiness Scorecard",
+    question: "Is our AI-based software sensor offering positioned for adoption in manufacturing lines?",
+    dimensions: [
+      {
+        name: "Trust and Validation",
+        questions: [
+          { text: "Does our deployment model support parallel validation where customers can run AI-based sensors alongside their existing hardware sensors?", source: "Q5, Q47", guidance: "Develop a parallel-run capability allowing side-by-side comparison of AI and hardware sensor outputs during the evaluation period." },
+          { text: "Can our solution explain how it arrives at its sensor readings in terms that plant personnel can understand?", source: "Q16", guidance: "Implement explainability features: confidence intervals, input feature attribution, and plain-language summaries of model decisions." },
+          { text: "Do we hold third-party certifications or provide audit trails for our AI-based sensor outputs?", source: "Q18", guidance: "Pursue relevant certifications (e.g., ISO 27001, industry-specific standards). Implement audit logging for all model predictions and version changes." },
+          { text: "Has our solution demonstrated consistent accuracy across variable production conditions and different machine states?", source: "Q1, Q7", guidance: "Document validation results across diverse operating conditions. Publish performance benchmarks covering normal, transient, and edge-case scenarios." }
+        ]
+      },
+      {
+        name: "Change Management Support",
+        questions: [
+          { text: "Do we offer role-differentiated training packages for shopfloor teams and business leaders?", source: "Q33, Q30", guidance: "Create tiered training materials: hands-on guides for operators, dashboard interpretation for supervisors, ROI briefings for executives." },
+          { text: "Do we position our offering with the recognition that AI sensing requires expertise beyond day-to-day manufacturing operations?", source: "Q66", guidance: "Be transparent in go-to-market materials about the expertise required. Offer managed services or knowledge-transfer programs to bridge the gap." },
+          { text: "Do we provide onboarding support tailored to shopfloor-level personnel who will work alongside the sensors?", source: "Q32", guidance: "Design onboarding for non-technical users: visual dashboards, simplified alerting, and in-context help within the operator interface." },
+          { text: "Do we proactively address concerns about job displacement that plant personnel may have?", source: "Q27", guidance: "Develop messaging that frames AI sensors as augmenting roles rather than replacing them. Include case studies showing workforce empowerment." },
+          { text: "Do we offer rapid support channels for customers post-deployment?", source: "Q26", guidance: "Establish dedicated support channels with defined SLAs. Consider on-site support options during the first weeks of production deployment." }
+        ]
+      },
+      {
+        name: "Deployment Flexibility",
+        questions: [
+          { text: "Do we offer SaaS or subscription-based deployment options?", source: "Q72", guidance: "Develop a SaaS offering or subscription model that reduces upfront commitment and lowers the barrier to initial adoption." },
+          { text: "Does our deployment model support phased or incremental rollouts rather than requiring full-scale adoption?", source: "Q48", guidance: "Ensure the product architecture supports incremental scaling: per-machine licensing, modular deployment, and independent instance management." },
+          { text: "Can we accommodate hybrid arrangements where the customer retains partial in-house development?", source: "Q65", guidance: "Expose APIs and integration points that allow customers to build complementary capabilities on top of your platform." },
+          { text: "Can our solution scale across multiple manufacturing facilities within a single customer organization?", source: "Q76", guidance: "Architect for multi-site deployment: centralized model management, site-specific configuration, and cross-facility performance comparison." }
+        ]
+      },
+      {
+        name: "Pricing Transparency",
+        questions: [
+          { text: "Is our pricing structure transparent and free of hidden costs?", source: "Q64, Q43", guidance: "Publish a clear pricing page or rate card. Disclose all costs: base subscription, data storage, API calls, support tiers, and integration fees." },
+          { text: "Do our pricing models actively encourage broader adoption rather than limiting it?", source: "Q71", guidance: "Design volume-friendly pricing: per-unit cost decreases at scale, site-wide licenses, or enterprise agreements that reward broader adoption." },
+          { text: "Do we offer outcome-based or value-based pricing options alongside standard models?", source: "Q74", guidance: "Explore pricing tied to measurable outcomes (e.g., accuracy improvements, downtime reduction) to align vendor incentives with customer value." },
+          { text: "Do we provide flexibility through combinations of SaaS variants (e.g., pre-paid, post-paid)?", source: "Q77", guidance: "Offer multiple billing models: monthly post-paid, annual pre-paid with discount, and consumption-based options for variable workloads." }
+        ]
+      }
+    ]
+  }
+};
+
+const STORAGE_KEY = 'scorecard-history';
+
+let currentMode = null;
+let ratings = {};
+let radarChart = null;
+let thresholdLower = 2.5;
+let thresholdUpper = 3.5;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'print-target'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'landing') renderHistory();
+}
+
+function getHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch { return []; }
+}
+
+function saveToHistory(mode, overall, dimScores, allRatings) {
+  const history = getHistory();
+  history.unshift({
+    id: Date.now(),
+    mode: mode,
+    date: new Date().toISOString(),
+    overall: overall,
+    dimensions: dimScores.map(d => ({ name: d.name, score: d.score })),
+    ratings: { ...allRatings }
+  });
+  if (history.length > 20) history.length = 20;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+}
+
+function renderHistory() {
+  const history = getHistory();
+  const panel = document.getElementById('historyPanel');
+  if (history.length === 0) { panel.innerHTML = ''; return; }
+
+  const modeLabels = { adoption: 'Plant Assessment', vendor: 'Vendor Assessment' };
+  let rows = history.slice(0, 5).map(h => {
+    const d = new Date(h.date);
+    const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const band = getBand(h.overall);
+    return `<div class="history-entry">
+      <span class="he-info">${modeLabels[h.mode] || h.mode}</span>
+      <span class="he-score" style="color: var(--${band.class})">${h.overall.toFixed(2)}</span>
+      <span class="he-date">${dateStr}</span>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = `<div class="history-section">
+    <h3>Previous Assessments</h3>
+    ${rows}
+    <div class="history-actions">
+      <button class="btn-small danger" onclick="clearHistory()">Clear History</button>
+    </div>
+  </div>`;
+}
+
+function clearHistory() {
+  localStorage.removeItem(STORAGE_KEY);
+  renderHistory();
+}
+
+function goToLanding() {
+  ratings = {};
+  currentMode = null;
+  if (radarChart) { radarChart.destroy(); radarChart = null; }
+  showScreen('landing');
+}
+
+function startAssessment(mode) {
+  const lo = parseFloat(document.getElementById('threshLower').value) || 2.5;
+  const hi = parseFloat(document.getElementById('threshUpper').value) || 3.5;
+  if (lo >= hi || lo < 1 || hi > 5) {
+    alert('Lower threshold must be less than upper threshold (both between 1 and 5).');
+    return;
+  }
+  thresholdLower = lo;
+  thresholdUpper = hi;
+
+  currentMode = mode;
+  ratings = {};
+  const data = DATA[mode];
+
+  document.getElementById('assessmentQuestion').textContent = data.question;
+
+  const container = document.getElementById('dimensionsContainer');
+  container.innerHTML = '';
+
+  data.dimensions.forEach((dim, di) => {
+    const section = document.createElement('div');
+    section.className = 'dimension-section';
+
+    const header = document.createElement('div');
+    header.className = 'dimension-header';
+    header.innerHTML = `<h3>${dim.name}</h3><span class="dimension-avg" id="dimAvg-${di}">-- / 5.00</span>`;
+
+    const body = document.createElement('div');
+    body.className = 'dimension-body';
+    body.id = `dimBody-${di}`;
+
+    header.onclick = () => body.classList.toggle('collapsed');
+
+    dim.questions.forEach((q, qi) => {
+      const key = `${di}-${qi}`;
+      const row = document.createElement('div');
+      row.className = 'question-row';
+
+      let ratingBtns = '';
+      for (let r = 1; r <= 5; r++) {
+        ratingBtns += `<button class="rating-btn" data-key="${key}" data-val="${r}" onclick="setRating('${key}', ${r}, this)">${r}</button>`;
+      }
+
+      row.innerHTML = `
+        <div class="question-text">
+          ${q.text}
+          <div class="question-source">Source: ${q.source}</div>
+        </div>
+        <div class="rating-group">${ratingBtns}</div>
+      `;
+
+      body.appendChild(row);
+    });
+
+    section.appendChild(header);
+    section.appendChild(body);
+    container.appendChild(section);
+  });
+
+  updateProgress();
+  showScreen('assessment');
+}
+
+function setRating(key, val, btn) {
+  ratings[key] = val;
+  btn.parentElement.querySelectorAll('.rating-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  updateProgress();
+  updateDimensionAverages();
+}
+
+function updateProgress() {
+  const data = DATA[currentMode];
+  const total = data.dimensions.reduce((s, d) => s + d.questions.length, 0);
+  const answered = Object.keys(ratings).length;
+  document.getElementById('progressFill').style.width = `${(answered / total) * 100}%`;
+  document.getElementById('progressText').textContent = `${answered} / ${total}`;
+  document.getElementById('submitBtn').disabled = answered < total;
+}
+
+function updateDimensionAverages() {
+  const data = DATA[currentMode];
+  data.dimensions.forEach((dim, di) => {
+    const scores = [];
+    dim.questions.forEach((q, qi) => {
+      if (ratings[`${di}-${qi}`] !== undefined) scores.push(ratings[`${di}-${qi}`]);
+    });
+    const el = document.getElementById(`dimAvg-${di}`);
+    el.textContent = scores.length > 0
+      ? `${(scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)} / 5.00`
+      : '-- / 5.00';
+  });
+}
+
+function getBand(score) {
+  if (score < thresholdLower) return { label: 'Not Ready', class: 'red', interpretation: 'Critical gaps exist. Address foundational requirements before initiating a project.' };
+  if (score <= thresholdUpper) return { label: 'Conditionally Ready', class: 'amber', interpretation: 'Partial readiness. Targeted investments are needed in low-scoring areas before proceeding.' };
+  return { label: 'Ready to Proceed', class: 'green', interpretation: 'Sufficient readiness to initiate a pilot or engagement. Monitor low-scoring individual metrics as the project progresses.' };
+}
+
+function truncateQuestion(text) {
+  const maxLen = 80;
+  if (text.length <= maxLen) return text.replace(/\?$/, '');
+  return text.substring(0, maxLen).replace(/\s+\S*$/, '') + '...';
+}
+
+function showResults() {
+  const data = DATA[currentMode];
+  const dimScores = [];
+
+  data.dimensions.forEach((dim, di) => {
+    const qScores = dim.questions.map((q, qi) => ({
+      text: q.text,
+      source: q.source,
+      guidance: q.guidance,
+      score: ratings[`${di}-${qi}`]
+    }));
+    const avg = qScores.reduce((s, q) => s + q.score, 0) / qScores.length;
+    const sorted = [...qScores].sort((a, b) => a.score - b.score);
+    dimScores.push({
+      name: dim.name,
+      score: avg,
+      questionScores: qScores,
+      lowest: sorted.slice(0, 2),
+      highest: sorted.slice(-2).reverse()
+    });
+  });
+
+  const overall = dimScores.reduce((s, d) => s + d.score, 0) / dimScores.length;
+  const overallBand = getBand(overall);
+
+  // Save to history
+  saveToHistory(currentMode, overall, dimScores, ratings);
+
+  document.getElementById('overallScore').textContent = overall.toFixed(2);
+  document.getElementById('overallScore').style.color = `var(--${overallBand.class})`;
+  document.getElementById('overallBadge').innerHTML = `<span class="readiness-badge badge-${overallBand.class}">${overallBand.label}</span>`;
+
+  // --- EXECUTIVE SUMMARY ---
+  const sortedDims = [...dimScores].sort((a, b) => a.score - b.score);
+  const strongestDim = sortedDims[sortedDims.length - 1];
+  const weakestDim = sortedDims[0];
+  const modeLabel = currentMode === 'adoption' ? 'adoption readiness' : 'market readiness';
+  const entityLabel = currentMode === 'adoption' ? 'organization' : 'offering';
+
+  let narrativeText = '';
+  if (overallBand.class === 'green') {
+    narrativeText = `The overall ${modeLabel} score of ${overall.toFixed(2)} out of 5.00 places this ${entityLabel} in the <strong>Ready to Proceed</strong> category. ` +
+      `The strongest dimension is ${strongestDim.name} (${strongestDim.score.toFixed(2)}), while ${weakestDim.name} (${weakestDim.score.toFixed(2)}) represents the area with the most room for improvement. ` +
+      `Although the overall assessment is positive, attention to individual low-scoring items within each dimension will strengthen the foundation for sustained success.`;
+  } else if (overallBand.class === 'amber') {
+    narrativeText = `The overall ${modeLabel} score of ${overall.toFixed(2)} out of 5.00 places this ${entityLabel} in the <strong>Conditionally Ready</strong> category. ` +
+      `${strongestDim.name} (${strongestDim.score.toFixed(2)}) is the most mature dimension, while ${weakestDim.name} (${weakestDim.score.toFixed(2)}) requires the most attention. ` +
+      `Targeted investment in the priority areas identified below is recommended before proceeding with a full-scale initiative.`;
+  } else {
+    narrativeText = `The overall ${modeLabel} score of ${overall.toFixed(2)} out of 5.00 places this ${entityLabel} in the <strong>Not Ready</strong> category. ` +
+      `Foundational gaps exist across multiple dimensions, with ${weakestDim.name} (${weakestDim.score.toFixed(2)}) scoring lowest. ` +
+      `${strongestDim.name} (${strongestDim.score.toFixed(2)}) is the relative area of strength. A structured remediation plan addressing the critical gaps below is essential before initiating a project.`;
+  }
+
+  let insightsHTML = '';
+  dimScores.forEach(d => {
+    const band = getBand(d.score);
+    const lowestItems = d.lowest.filter(q => q.score <= 3);
+    const highestItems = d.highest.filter(q => q.score >= 4);
+    let parts = [`<strong>${d.name}</strong> scored ${d.score.toFixed(2)} (${band.label}).`];
+    if (highestItems.length > 0) parts.push(`Areas of strength: ${highestItems.map(q => '"' + truncateQuestion(q.text) + '" (' + q.score + '/5)').join(' and ')}.`);
+    if (lowestItems.length > 0) parts.push(`Areas requiring attention: ${lowestItems.map(q => '"' + truncateQuestion(q.text) + '" (' + q.score + '/5)').join(' and ')}.`);
+    if (lowestItems.length === 0 && highestItems.length === 0) parts.push('Scores are uniformly distributed across this dimension.');
+    insightsHTML += `<div class="dim-insight insight-${band.class}">${parts.join(' ')}</div>`;
+  });
+
+  const actionDims = sortedDims.filter(d => d.score < 3.5);
+  let actionsHTML = '';
+  if (actionDims.length > 0) {
+    actionsHTML = `<div class="exec-subsection"><h4><span class="indicator indicator-amber"></span> Priority Actions</h4><ul>` +
+      actionDims.map(d => {
+        const band = getBand(d.score);
+        return `<li class="item-${band.class}"><strong>${d.name}:</strong> Prioritize "${truncateQuestion(d.lowest[0].text)}" (rated ${d.lowest[0].score}/5), the lowest-scoring item in this dimension.</li>`;
+      }).join('') + `</ul></div>`;
+  }
+
+  const strengthDims = sortedDims.filter(d => d.score >= 3.5);
+  let strengthsHTML = '';
+  if (strengthDims.length > 0) {
+    strengthsHTML = `<div class="exec-subsection"><h4><span class="indicator indicator-green"></span> Key Strengths</h4><ul>` +
+      strengthDims.map(d => `<li class="item-green"><strong>${d.name}:</strong> "${truncateQuestion(d.highest[0].text)}" rated ${d.highest[0].score}/5, reflecting strong capability.</li>`).join('') + `</ul></div>`;
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  document.getElementById('execSummary').innerHTML = `
+    <h3>Executive Summary</h3>
+    <p class="exec-narrative">${narrativeText}</p>
+    <p class="exec-narrative" style="font-size:12px; color: var(--gray); margin-top: -8px; margin-bottom: 16px;">This assessment is grounded in empirical findings from a sequential mixed-methods study comprising 65 survey respondents and 6 expert interviews across 9 countries, conducted as part of doctoral research at ESGCI Paris (Mantri, 2026). Dimensions and thresholds are derived from statistical analysis of 77 Likert-scale items mapped to four research themes.</p>
+    <div class="exec-subsection"><h4>Dimension Insights</h4>${insightsHTML}</div>
+    ${actionsHTML}
+    ${strengthsHTML}
+    <div class="timestamp">Assessment completed on ${dateStr}</div>
+  `;
+
+  // --- GUIDANCE ---
+  const lowScoringItems = [];
+  dimScores.forEach(d => {
+    d.questionScores.forEach(q => {
+      if (q.score <= 2) lowScoringItems.push({ dim: d.name, ...q, severity: 'red' });
+      else if (q.score === 3) lowScoringItems.push({ dim: d.name, ...q, severity: 'amber' });
+    });
+  });
+
+  let guidanceHTML = '';
+  if (lowScoringItems.length > 0) {
+    guidanceHTML = `<div class="guidance-section"><h3>Recommended Actions</h3>
+      <p style="font-size:13px; color: var(--gray); margin-bottom: 12px;">The following recommendations are provided for items scoring 3 or below, prioritized by severity.</p>`;
+    lowScoringItems.sort((a, b) => a.score - b.score);
+    lowScoringItems.forEach(item => {
+      guidanceHTML += `<div class="guidance-item ${item.severity === 'amber' ? 'guidance-amber' : ''}">
+        <strong>${item.dim} (${item.source}) &mdash; Score: ${item.score}/5</strong>
+        ${item.guidance}
+      </div>`;
+    });
+    guidanceHTML += `</div>`;
+  }
+  document.getElementById('guidanceSection').innerHTML = guidanceHTML;
+
+  // --- DIMENSION BREAKDOWN ---
+  const resultsDiv = document.getElementById('dimensionResults');
+  resultsDiv.innerHTML = '';
+  dimScores.forEach(d => {
+    const band = getBand(d.score);
+    resultsDiv.innerHTML += `
+      <div class="dim-result-card">
+        <div class="dim-score-circle circle-${band.class}">${d.score.toFixed(1)}</div>
+        <div class="dim-result-text">
+          <h4>${d.name} <span style="font-weight:400; color: var(--${band.class});">&mdash; ${band.label}</span></h4>
+          <p>${band.interpretation}</p>
+        </div>
+      </div>`;
+  });
+
+  // --- RADAR CHART ---
+  if (radarChart) radarChart.destroy();
+
+  const history = getHistory();
+  const previousSameMode = history.filter(h => h.mode === currentMode).slice(1, 2);
+
+  const datasets = [{
+    label: 'Current Assessment',
+    data: dimScores.map(d => parseFloat(d.score.toFixed(2))),
+    backgroundColor: 'rgba(0, 121, 107, 0.15)',
+    borderColor: 'rgba(0, 121, 107, 0.8)',
+    borderWidth: 2,
+    pointBackgroundColor: 'rgba(0, 121, 107, 1)',
+    pointRadius: 5
+  }];
+
+  if (previousSameMode.length > 0) {
+    const prev = previousSameMode[0];
+    datasets.push({
+      label: 'Previous (' + new Date(prev.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ')',
+      data: prev.dimensions.map(d => parseFloat(d.score.toFixed(2))),
+      backgroundColor: 'rgba(158, 158, 158, 0.08)',
+      borderColor: 'rgba(158, 158, 158, 0.5)',
+      borderWidth: 1.5,
+      borderDash: [6, 4],
+      pointBackgroundColor: 'rgba(158, 158, 158, 0.7)',
+      pointRadius: 4
+    });
+  }
+
+  const ctx = document.getElementById('radarChart').getContext('2d');
+  radarChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: dimScores.map(d => d.name.split(' ')),
+      datasets: datasets
+    },
+    options: {
+      responsive: true,
+      scales: {
+        r: {
+          beginAtZero: true,
+          min: 0,
+          max: 5,
+          ticks: { stepSize: 1, font: { size: 11 } },
+          pointLabels: { font: { size: 13, weight: '500' }, padding: 20 },
+          grid: { color: '#E0E0E0' }
+        }
+      },
+      layout: {
+        padding: { left: 24, right: 24, top: 16, bottom: 16 }
+      },
+      plugins: {
+        legend: { display: datasets.length > 1, position: 'bottom', labels: { font: { size: 12 }, padding: 16 } }
+      }
+    }
+  });
+
+  showScreen('results');
+}
+
+function printReport() {
+  document.getElementById('results').classList.add('print-target');
+  window.print();
+}
+
+renderHistory();
+</script>
+
+</body>
+</html>
